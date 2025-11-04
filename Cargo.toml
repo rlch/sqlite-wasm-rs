@@ -44,6 +44,10 @@ custom-libc = ["bundled", "sqlite-wasm-libc"]
 # <https://github.com/utelle/SQLite3MultipleCiphers>
 # <https://utelle.github.io/SQLite3MultipleCiphers>
 sqlite3mc = ["bundled"]
+# sqlite-vec: Vector search extension
+# <https://github.com/asg017/sqlite-vec>
+# <https://alexgarcia.xyz/sqlite-vec>
+sqlite-vec = ["bundled"]
 relaxed-idb = ["indexed_db_futures"]
 
 [dev-dependencies]

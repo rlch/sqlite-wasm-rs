@@ -42,6 +42,21 @@ jobs:
       run: |
         wasm-pack test --chrome --headless --features relaxed-idb,sqlite3mc
 
+  test_bundled_sqlite_vec:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install wasm-pack
+      run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+    - name: Setup emscripten
+      uses: ./.github/actions/setup-emscripten
+    - name: Test bundled sqlite-vec
+      run: |
+        wasm-pack test --chrome --headless --features relaxed-idb,sqlite-vec
+
   test_diesel:
     runs-on: ubuntu-latest
     steps:
@@ -151,6 +166,7 @@ jobs:
         rustup default 1.78.0
         wasm-pack test --chrome --headless --features relaxed-idb
         wasm-pack test --chrome --headless --features relaxed-idb,sqlite3mc
+        wasm-pack test --chrome --headless --features relaxed-idb,sqlite-vec
 
   test_nodejs:
     strategy:

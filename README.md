@@ -24,6 +24,13 @@ sqlite-wasm-rs = { version = "0.4", default-features = false, features = ["preco
 sqlite-wasm-rs = { version = "0.4", features = ["sqlite3mc"] }
 ```
 
+```toml
+[dependencies]
+# Vector search is supported by sqlite-vec extension, need to enable the bundled feature.
+# See <https://github.com/asg017/sqlite-vec>
+sqlite-wasm-rs = { version = "0.4", features = ["sqlite-vec"] }
+```
+
 ```rust
 use sqlite_wasm_rs::{
     self as ffi,
@@ -133,3 +140,4 @@ used to disable `reference-types` of the C library.
 * [`sqlite-web-rs`](https://github.com/xmtp/sqlite-web-rs): A SQLite WebAssembly backend for Diesel.
 * [`wa-sqlite`](https://github.com/rhashimoto/wa-sqlite): WebAssembly SQLite with support for browser storage extensions.
 * [`SQLite3MultipleCiphers`](https://github.com/utelle/SQLite3MultipleCiphers): SQLite3 encryption extension with support for multiple ciphers.
+* [`sqlite-vec`](https://github.com/asg017/sqlite-vec): A vector search SQLite extension written in C.

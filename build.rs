@@ -38,6 +38,16 @@ const FULL_FEATURED: [&str; 24] = [
 ))]
 const SQLITE3_MC_FEATURED: [&str; 2] = ["-D__WASM__", "-DARGON2_NO_THREADS"];
 
+#[cfg(all(
+    any(feature = "bundled", feature = "buildtime-bindgen"),
+    feature = "sqlite-vec"
+))]
+const SQLITE_VEC_FEATURED: [&str; 3] = [
+    "-DSQLITE_VEC_STATIC",   // Enable static linking
+    "-DSQLITE_CORE",         // Compile as part of SQLite core
+    "-DSQLITE_EXTRA_INIT=sqlite3_wasm_extra_init", // Auto-register extension
+];
+
 #[cfg(all(not(feature = "bundled"), not(feature = "precompiled")))]
 fn main() {
     panic!(
@@ -90,7 +100,10 @@ fn main() {
     #[cfg(feature = "sqlite3mc")]
     println!("cargo::rerun-if-changed=sqlite3mc");
 
-    #[cfg(not(feature = "sqlite3mc"))]
+    #[cfg(feature = "sqlite-vec")]
+    println!("cargo::rerun-if-changed=sqlite-vec");
+
+    #[cfg(not(any(feature = "sqlite3mc", feature = "sqlite-vec")))]
     println!("cargo::rerun-if-changed=sqlite3");
 
     compile(&output);
@@ -115,10 +128,12 @@ fn main() {
 
 #[cfg(feature = "buildtime-bindgen")]
 fn bindgen(output: &str) {
-    #[cfg(not(feature = "sqlite3mc"))]
-    const SQLITE3_HEADER: &str = "sqlite3/sqlite3.h";
-    #[cfg(feature = "sqlite3mc")]
+    #[cfg(feature = "sqlite-vec")]
+    const SQLITE3_HEADER: &str = "sqlite-vec/sqlite-vec.h";
+    #[cfg(all(not(feature = "sqlite-vec"), feature = "sqlite3mc"))]
     const SQLITE3_HEADER: &str = "sqlite3mc/sqlite3mc_amalgamation.h";
+    #[cfg(not(any(feature = "sqlite-vec", feature = "sqlite3mc")))]
+    const SQLITE3_HEADER: &str = "sqlite3/sqlite3.h";
 
     use bindgen::callbacks::{IntKind, ParseCallbacks};
 
@@ -196,6 +211,11 @@ fn bindgen(output: &str) {
         bindings = bindings.clang_args(SQLITE3_MC_FEATURED);
     }
 
+    #[cfg(feature = "sqlite-vec")]
+    {
+        bindings = bindings.clang_args(SQLITE_VEC_FEATURED);
+    }
+
     bindings = bindings
         .blocklist_function("sqlite3_vmprintf")
         .blocklist_function("sqlite3_vsnprintf")
@@ -223,10 +243,10 @@ fn bindgen(output: &str) {
 fn compile(output: &str) {
     use std::collections::HashSet;
 
-    #[cfg(not(feature = "sqlite3mc"))]
-    const SQLITE3_SOURCE: &str = "sqlite3/sqlite3.c";
     #[cfg(feature = "sqlite3mc")]
     const SQLITE3_SOURCE: &str = "sqlite3mc/sqlite3mc_amalgamation.c";
+    #[cfg(not(feature = "sqlite3mc"))]
+    const SQLITE3_SOURCE: &str = "sqlite3/sqlite3.c";
 
     let mut cc = cc::Build::new();
     cc.warnings(false).target("wasm32-unknown-emscripten");
@@ -239,8 +259,18 @@ or use the precompiled binaries via the `default-features = false` and `precompi
     }
 
     cc.file(SQLITE3_SOURCE).flags(FULL_FEATURED);
+    
     #[cfg(feature = "sqlite3mc")]
     cc.flags(SQLITE3_MC_FEATURED);
+    
+    // For sqlite-vec, we also need to compile the extension with SQLite
+    #[cfg(feature = "sqlite-vec")]
+    {
+        cc.file("sqlite-vec/sqlite-vec.c");
+        cc.file("sqlite-vec/sqlite3_wasm_extra_init.c");
+        cc.flags(SQLITE_VEC_FEATURED);
+        cc.include("sqlite3"); // Add sqlite3 directory to include path
+    }
 
     let target_features = std::env::var("CARGO_CFG_TARGET_FEATURE").unwrap_or_default();
     let target_features = target_features
